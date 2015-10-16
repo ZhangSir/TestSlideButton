@@ -1,0 +1,39 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res/com.test.slidebutton"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context="com.test.slidebutton.MainActivity" >
+
+    <com.test.slidebutton.SlideButton
+        android:id="@+id/sb1"
+        android:layout_width="64dip"
+        android:layout_height="32dip"
+        android:layout_margin="16dp"
+        app:isOpen="false"
+        app:shape="rect"
+        app:colorOpened="#ff6992D4" >
+    </com.test.slidebutton.SlideButton>
+
+    <com.test.slidebutton.SlideButton
+        android:id="@+id/sb2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:isOpen="false"
+        app:shape="rect_circle"
+        app:colorOpened="#ff6992D4" >
+    </com.test.slidebutton.SlideButton>
+
+    <com.test.slidebutton.SlideButton
+        android:id="@+id/sb3"
+        android:layout_width="128dip"
+        android:layout_height="64dip"
+        android:layout_margin="16dp"
+        app:isOpen="false"
+        app:shape="circle"
+        app:colorOpened="#ff6992D4" >
+    </com.test.slidebutton.SlideButton>
+
+</LinearLayout>
