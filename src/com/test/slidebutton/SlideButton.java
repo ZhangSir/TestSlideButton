@@ -18,6 +18,7 @@ package com.test.slidebutton;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
 import android.content.Context;
@@ -25,7 +26,6 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Looper;
@@ -84,6 +84,8 @@ public class SlideButton extends View {
 	private float backArcRadius;
 	/**滑块滑动时left的起始位置X*/
 	private int sliderMoveStartLeft = RIM_SIZE;
+	/**记录背景当前的颜色*/
+	private int backCurrentColor;
 	
 	private int startX;
 	private int startY;
@@ -229,11 +231,8 @@ public class SlideButton extends View {
 
 	@Override
 	protected void onDraw(Canvas canvas) {
-		paint.setColor(colorClosed);
-		canvas.drawRoundRect(rectfBack, backArcRadius, backArcRadius, paint);
-			
-		paint.setColor(colorOpend);
-		paint.setAlpha(alpha);
+		
+		paint.setColor(backCurrentColor);
 		canvas.drawRoundRect(rectfBack, backArcRadius, backArcRadius, paint);
 			
 		rectfSlider.set(sliderCurrentLeft, RIM_SIZE, sliderCurrentLeft + silderWidth, RIM_SIZE + silderWidth);
@@ -274,6 +273,7 @@ public class SlideButton extends View {
 					sliderCurrentLeft = min_left;
 				}
 				alpha = (int)(255 * ((sliderCurrentLeft - min_left) / (float)(max_left - min_left)));
+				caculateColor();
 				invalidateView();
 			}
 			break;
@@ -285,7 +285,7 @@ public class SlideButton extends View {
 			}else{//没有滑动，相应为点击操作，滑块移动到反方向
 				toRight = !toRight;
 			}
-			moveToDest(toRight);
+			moveTo(toRight);
 			break;
 		default:
 			break;
@@ -312,7 +312,12 @@ public class SlideButton extends View {
 		this.listener = listener;
 	}
 
-	public void moveToDest(final boolean toRight) {
+	/**
+	 * 执行从当前位置移动到max_left或min_left的动画(以替换为moveTo（boolean toRight）方法)
+	 * @param toRight
+	 */
+	@Deprecated
+	private void moveToDest(final boolean toRight) {
 		ValueAnimator toDestAnim = ValueAnimator.ofInt(sliderCurrentLeft,
 				toRight ? max_left : min_left);
 		toDestAnim.setDuration(200);
@@ -327,6 +332,7 @@ public class SlideButton extends View {
 				alpha = (int) (255 * (float) sliderCurrentLeft / (float) max_left);
 				if(alpha < 0) alpha = 0;
 				if(alpha > 255) alpha = 255;
+				caculateColor();
 				invalidateView();
 			}
 		});
@@ -352,6 +358,94 @@ public class SlideButton extends View {
 			}
 		});
 	}
+	
+	/**
+	 * 执行从当前位置移动到max_left或min_left的动画
+	 * @param toRight
+	 */
+	private void moveTo(final boolean toRight){
+		ObjectAnimator anim = ObjectAnimator.ofInt(this, "sliderCurrentLeft",
+				sliderCurrentLeft, toRight ? max_left : min_left);
+		anim.setInterpolator(new OvershootInterpolator());
+		anim.setDuration(200);
+		anim.addListener(new AnimatorListenerAdapter() {
+			@Override
+			public void onAnimationEnd(Animator animation) {
+				if (toRight) {
+					isOpen = true;
+					if (listener != null){
+						listener.open();
+					}
+					sliderCurrentLeft = sliderMoveStartLeft = max_left;
+				} else {
+					isOpen = false;
+					if (listener != null){
+						listener.close();
+					}
+					sliderCurrentLeft = sliderMoveStartLeft = min_left;
+				}
+				invalidateView();
+			}
+		});
+		anim.start();
+	}
+
+	/**
+	 * 获取当前滑块的左边缘位置
+	 * @return
+	 */
+	public int getSliderCurrentLeft() {
+		return sliderCurrentLeft;
+	}
+
+	/**
+	 * 设置当前滑块的左边缘位置
+	 * @param sliderCurrentLeft
+	 */
+	public void setSliderCurrentLeft(int sliderCurrentLeft) {
+		this.sliderCurrentLeft = sliderCurrentLeft;
+		caculateColor();
+		invalidateView();
+	}
+	
+	/**
+	 * 根据当前滑块的位置计算当前的背景颜色
+	 */
+	private void caculateColor(){
+		float per = (sliderCurrentLeft - min_left) / (float)(max_left - min_left);
+		String StartColor = "#" + Integer.toHexString(colorClosed);
+		String endColor = "#" + Integer.toHexString(colorOpend);
+		
+		int startAlpha = Integer.parseInt(StartColor.substring(1, 3), 16);
+		int startRed = Integer.parseInt(StartColor.substring(3, 5), 16);
+		int startGreen = Integer.parseInt(StartColor.substring(5, 7), 16);
+		int startBlue = Integer.parseInt(StartColor.substring(7), 16);
+		
+		int endAlpha = Integer.parseInt(endColor.substring(1, 3), 16);
+		int endRed = Integer.parseInt(endColor.substring(3, 5), 16);
+		int endGreen = Integer.parseInt(endColor.substring(5, 7), 16);
+		int endBlue = Integer.parseInt(endColor.substring(7), 16);
+		
+		int currentAlpha = (int) ((endAlpha - startAlpha) * per + startAlpha);
+		int currentRed = (int) ((endRed - startRed) * per + startRed);
+		int currentGreen = (int) ((endGreen - startGreen) * per + startGreen);
+		int currentBlue = (int) ((endBlue - startBlue) * per + startBlue);
+		
+		backCurrentColor = Color.parseColor("#" + getHexString(currentAlpha) + getHexString(currentRed)
+				+ getHexString(currentGreen) + getHexString(currentBlue));
+		
+	}
+	
+	 /** 
+     * 将10进制颜色值转换成16进制。 
+     */  
+    private String getHexString(int value) {  
+        String hexString = Integer.toHexString(value);  
+        if (hexString.length() == 1) {  
+            hexString = "0" + hexString;  
+        }  
+        return hexString;  
+    }  
 
 	/**
 	 * 返回按钮状态
@@ -368,9 +462,9 @@ public class SlideButton extends View {
 	public void setOpen(boolean isOpen) {
 		this.isOpen = isOpen;
 		if(this.isOpen){
-			moveToDest(true);
+			moveTo(true);
 		}else{
-			moveToDest(false);
+			moveTo(false);
 		}
 	}
 
